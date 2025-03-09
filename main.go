@@ -32,6 +32,10 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+
+	if len(firewalls.Firewalls) == 0 {
+		panic("No Firewalls found")
+	}
 	for _, r := range firewalls.Firewalls[0].InboundRules {
 		fmt.Printf("%v - %v - %v\n", r.Protocol, r.Ports, r.Sources.Addresses)
 	}
@@ -43,10 +47,6 @@ func main() {
 			r.Sources.Addresses = []string{ipv4, ipv6}
 		}
 	}
-
-	//// print
-	//bb, _ := json.MarshalIndent(firewalls, "", "  ")
-	//fmt.Printf("%s\n", bb)
 
 	// update Digital Ocean
 	status, err := do.PutFirewalls(&firewalls.Firewalls[0])

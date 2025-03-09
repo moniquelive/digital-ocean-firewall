@@ -1,3 +1,3 @@
 module github.com/moniquelive/digital-ocean-firewall
 
-go 1.24
+go 1.22
