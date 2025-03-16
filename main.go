@@ -1,10 +1,13 @@
 package main
 
 import (
+	"context"
 	"fmt"
+	"os"
 
-	"github.com/moniquelive/digital-ocean-firewall/do"
 	"github.com/moniquelive/digital-ocean-firewall/wtf"
+
+	"github.com/digitalocean/godo"
 )
 
 func getIPs() (string, string, error) {
@@ -25,33 +28,35 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Printf("%v && %v\n", ipv4, ipv6)
+	fmt.Printf("%v // %v\n", ipv4, ipv6)
 
 	// get Firewalls
-	firewalls, err := do.GetFirewalls()
+	client := godo.NewFromToken(os.Getenv("DIGITAL_OCEAN_TOKEN"))
+	list, _, err := client.Firewalls.List(context.TODO(), nil)
 	if err != nil {
 		panic(err)
 	}
 
-	if len(firewalls.Firewalls) == 0 {
-		panic("No Firewalls found")
-	}
-	for _, r := range firewalls.Firewalls[0].InboundRules {
-		fmt.Printf("%v - %v - %v\n", r.Protocol, r.Ports, r.Sources.Addresses)
-	}
-
-	// update Firewalls
-	for i, _ := range firewalls.Firewalls[0].InboundRules {
-		r := &firewalls.Firewalls[0].InboundRules[i]
-		if r.Ports == "22" || r.Ports == "21115" || r.Ports == "21116" || r.Ports == "21117" {
-			r.Sources.Addresses = []string{ipv4, ipv6}
+	// update rules
+	for _, r := range list {
+		fmt.Printf("%v - %v - %v\n", r.DropletIDs, r.Name, r.Status)
+		req := godo.FirewallRequest{
+			Name:          r.Name,
+			InboundRules:  r.InboundRules,
+			OutboundRules: r.OutboundRules,
+			DropletIDs:    r.DropletIDs,
+			Tags:          r.Tags,
+		}
+		rules := &req.InboundRules
+		for i, _ := range *rules {
+			if (*rules)[i].PortRange == "22" || (*rules)[i].PortRange == "21115" || (*rules)[i].PortRange == "21116" || (*rules)[i].PortRange == "21117" {
+				(*rules)[i].Sources.Addresses = []string{ipv4, ipv6}
+			}
+			if _, resp, err := client.Firewalls.Update(context.TODO(), r.ID, &req); err != nil {
+				panic(err)
+			} else {
+				fmt.Println(resp)
+			}
 		}
 	}
-
-	// update Digital Ocean
-	status, err := do.PutFirewalls(&firewalls.Firewalls[0])
-	if err != nil {
-		panic(err)
-	}
-	fmt.Printf("Status: %d\n", status)
 }
