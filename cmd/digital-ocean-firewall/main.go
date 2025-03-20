@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/moniquelive/digital-ocean-firewall/wtf"
+	"github.com/moniquelive/digital-ocean-firewall/internal/wtf"
 
 	"github.com/digitalocean/godo"
 )
